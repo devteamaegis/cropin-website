@@ -1,0 +1,128 @@
+function ueAlphabetFilter(){
+  //vars
+  //classes
+  var g_filterItemClass, g_activeClass;
+  
+  //selectors
+  
+  //obj
+  var g_objWidget, g_objContainer, g_objItems;
+  
+  //helpers
+  var g_options;
+  
+  /**
+  * refresh filter
+  */
+  function refreshFilter(isSelected){
+    if(!isSelected)
+      var isSelected = false;
+    
+    var isRefresh = false;
+    var objHidden = g_objWidget.find(".uc-item-hidden");    
+    var isSingleFilter = g_objWidget.data("singlefilter");
+    var role = g_objWidget.data("role");
+    
+    if(isSelected == false && objHidden.length > 0 && isSingleFilter !== true && role != "child")
+      isRefresh = true;  
+    
+    var dataInitAfter = g_objWidget.data("initafter");
+    var objSelectedItems = g_objWidget.find("."+g_activeClass);
+    var selectedItemsNum = objSelectedItems.length;
+    
+    if(selectedItemsNum && selectedItemsNum > 0 && dataInitAfter == true && isSelected == false)
+      isRefresh = false;
+    
+    g_objWidget.trigger("uc_filter_change",{refresh:isRefresh});
+  }
+  
+  /**
+  * on item click
+  */
+  function onItemClick(){
+    var objItem = jQuery(this);
+    var isActive = objItem.hasClass(g_activeClass);
+    
+    //refresh items class
+    g_objItems = g_objWidget.find(`.${g_filterItemClass}`);
+    g_objItems.removeClass(g_activeClass);
+    
+    if(isActive == true)
+      objItem.removeClass(g_activeClass);
+    else
+      objItem.addClass(g_activeClass);   
+    
+    g_objWidget.trigger("filter_state_update");
+    
+    //refresh filter
+    refreshFilter(true);
+  }
+  
+  /**
+  * on get filter data
+  */
+  function onGetFilterData(event, responseData){
+    var objFilter = jQuery(this); 
+    var objSelected = objFilter.find(`.${g_filterItemClass}.${g_activeClass}`);
+    
+    if(!objSelected || objSelected.length == 0)
+      return(null);
+    
+    var selectedLetter = objSelected.text().trim();
+    
+    var objPostCount = objSelected.find('.ue-alphabet-filter-item-post-count');
+
+    if (objPostCount && objPostCount.length > 0) {
+      var postCountText = objPostCount.text().trim();
+
+      selectedLetter = selectedLetter.replace(postCountText, '').trim();
+    }
+    
+    var objOutput = {};
+    objOutput["title_start"] = selectedLetter;
+    
+    responseData.output = objOutput;
+  }
+  
+  /**
+  * clear filter
+  */
+  function onClearFilter(){
+    g_objItems.removeClass(g_activeClass);
+    g_objWidget.trigger("filter_state_update");
+  }
+  
+  /**
+  * init
+  */
+  this.init = function(options){
+    //init vars
+    g_options = options;
+    
+    g_filterItemClass = "ue-alphabet-filter-item";
+    g_activeClass = "ue-active";
+    
+    g_objWidget = jQuery("#"+g_options.id);
+    g_objContainer = g_objWidget.find(".ue-alphabet-filter-container");
+    g_objItems = g_objWidget.find(`.${g_filterItemClass}`);
+    
+    
+    //init events
+    g_objWidget.on("init_filter", function(){
+      g_objWidget.on("click", `.${g_filterItemClass}`, onItemClick);
+      g_objWidget.on("get_filter_data", onGetFilterData);
+      g_objWidget.on("clear_filter", onClearFilter);
+      g_objWidget.on("unselect_by_key", onClearFilter);
+      g_objWidget.trigger("filter_state_update");
+      g_objWidget.trigger("filter_html_init");
+      
+    });
+    
+    g_objWidget.on("uc_ajax_reloaded",function(){
+      
+      g_objWidget.trigger("filter_state_update");
+      g_objWidget.trigger("filter_html_init");          
+    });
+    
+  }  
+}
